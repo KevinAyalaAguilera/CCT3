@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Generador de QR imprimible</title>
+<link rel="stylesheet" href="CCT3.css" />
+</head>
+<body>
+<header class="topbar">
+<h1>Generador de tarjetas con QR</h1>
+<div class="controls">
+<input id="fileInput" type="file" accept=".xlsx,.xls" />
+<button id="printBtn">Imprimir</button>
+<label class="note">Formato esperado: columna con nombre <code>Id. de la carga</code> y otras columnas.</label>
+</div>
+</header>
+
+
+<main>
+<section id="cardsContainer" class="cards-grid" aria-live="polite">
+<!-- tarjetas generadas aquí -->
+</section>
+</main>
+
+
+<footer class="footer">Generado con XLSX + QRCodeJS</footer>
+
+
+<!-- Dependencias: XLSX y QRCodeJS (CDN) -->
+<script src="xlsx.full.min.js"></script>
+<script src="qrcode.min.js"></script>
+<script src="CCT3.js"></script>
+</body>
+</html>
