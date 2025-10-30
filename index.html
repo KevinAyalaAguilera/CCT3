@@ -1,35 +1,132 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Generador de QR imprimible</title>
-<link rel="stylesheet" href="CCT3.css" />
-</head>
-<body>
-<header class="topbar">
-<h1>Generador de tarjetas con QR</h1>
-<div class="controls">
-<input id="fileInput" type="file" accept=".xlsx,.xls" />
-<button id="printBtn">Imprimir</button>
-<label class="note">Formato esperado: columna con nombre <code>Id. de la carga</code> y otras columnas.</label>
-</div>
-</header>
-
-
-<main>
-<section id="cardsContainer" class="cards-grid" aria-live="polite">
-<!-- tarjetas generadas aquí -->
-</section>
-</main>
-
-
-<footer class="footer">Generado con XLSX + QRCodeJS</footer>
-
-
-<!-- Dependencias: XLSX y QRCodeJS (CDN) -->
+<meta charset="UTF-8">
+<title>Generador de Imprimibles BKO</title>
 <script src="xlsx.full.min.js"></script>
 <script src="qrcode.min.js"></script>
-<script src="CCT3.js"></script>
+<style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .hidden { display: none; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td { border: 1px solid black; padding: 6px; text-align: left; }
+    .page { page-break-after: always; margin-bottom: 40px; }
+    .qr { margin-bottom: 10px; }
+    #output { margin-top: 30px; }
+</style>
+</head>
+<body>
+
+<h2 id="title">Generador de Imprimibles por Ruta</h2>
+
+<input type="file" id="fileInput" accept=".xlsx,.xls">
+<button onclick="procesarExcel()" id="prosExc">Procesar Excel</button>
+
+<div id="idInputs"></div>
+<button id="generarBtn" class="hidden" onclick="generarImprimibles()">Generar Imprimibles</button>
+
+<div id="output"></div>
+
+<script>
+let datosPorRuta = {};
+
+function procesarExcel() {
+    const file = document.getElementById("fileInput").files[0];
+    if (!file) return alert("Sube un archivo primero.");
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, {type: "array"});
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet);
+
+        datosPorRuta = {};
+
+        rows.forEach(row => {
+            const ruta = row["Ruta"];
+            if (!datosPorRuta[ruta]) datosPorRuta[ruta] = [];
+            datosPorRuta[ruta].push({
+                tarea: row["Identificador de tarea"],
+                ref: row["Artículo - Referencia"],
+                cant: row["Artículo - Cantidad"],
+                nomb: row["Artículo - Nombre"]
+            });
+        });
+
+        mostrarInputsDeCarga();
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function mostrarInputsDeCarga() {
+    const cont = document.getElementById("idInputs");
+    cont.innerHTML = "<h3>Ingresa ID de carga BKO para cada Ruta:</h3>";
+    Object.keys(datosPorRuta).forEach(ruta => {
+        cont.innerHTML += `
+            <div>
+                <label><b>${ruta}</b>:</label>
+                <input type="text" id="carga_${ruta}" placeholder="ID carga BKO">
+            </div>
+        `;
+    });
+
+    document.getElementById("generarBtn").classList.remove("hidden");
+}
+
+function generarImprimibles() {
+    const output = document.getElementById("output");
+    output.innerHTML = "";
+
+    Object.keys(datosPorRuta).forEach(ruta => {
+        const idCarga = document.getElementById("carga_" + ruta).value.trim();
+        if (!idCarga) return alert(`Falta ID carga para la ruta: ${ruta}`);
+
+        const page = document.createElement("div");
+        page.className = "page";
+
+        page.innerHTML = `<h3>Ruta: ${ruta}</h3><div class="qr" id="qr_${ruta}"></div>`;
+
+        const tabla = document.createElement("table");
+        tabla.innerHTML = `
+            <tr>
+                <th>Identificador de tarea</th>
+                <th>Artículo - Referencia</th>
+                <th>Artículo - Cantidad</th>
+                <th>Artículo - Nombre</th>
+            </tr>
+        `;
+
+        datosPorRuta[ruta].forEach(item => {
+            tabla.innerHTML += `
+                <tr>
+                    <td>${item.tarea}</td>
+                    <td>${item.ref}</td>
+                    <td>${item.cant}</td>
+                    <td>${item.nomb}</td>
+                </tr>
+            `;
+        });
+
+        page.appendChild(tabla);
+        output.appendChild(page);
+
+        new QRCode(document.getElementById(`qr_${ruta}`), {
+            text: idCarga,
+            width: 120,
+            height: 120
+        });
+    });
+
+    document.getElementById("generarBtn").hidden = true;
+    document.getElementById("idInputs").hidden = true;
+    document.getElementById("prosExc").hidden = true;
+    document.getElementById("fileInput").hidden = true;
+    document.getElementById("title").hidden = true;
+
+    alert("Imprimibles generados. Usa CTRL+P para imprimir.");
+}
+</script>
+
 </body>
 </html>
